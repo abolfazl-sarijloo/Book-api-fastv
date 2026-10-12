@@ -1,53 +1,68 @@
 from fastapi import FastAPI
 import models
+from fastapi import HTTPException
 
 app = FastAPI()
 
-li = []
+books = []
 
 @app.get("/books")
 async def root():
-    return {'message' : 'fast api is working', 'list': li}
+    try:
+        return {'books': books}
+    except:
+        raise HTTPException(
+            status_code=404,
+            detail="Book list is empty"
+        )
 
 @app.get("/books/{book_id}")
 async def Getbook(book_id:int):
-    if book_id < 0 or book_id >= len(li):
-        return {"message": "Book not found"}
+    for book in books:
+        if book.id == book_id:
+            return {'status' : 200, 'message':"success", 'book' : book}
 
-    return {'book': li[book_id]}
+    raise HTTPException(
+        status_code=404,
+        detail="Book not found"
+    )
 
-
-@app.post("/books/{book_id}")
+@app.post("/books/")
 async def Addbooks(book: models.Book):
-    li.append(book)
-    return {'status' : 200, 'message':"success", 'list' : li}
-
+    try:
+        books.append(book)
+        return {'status' : 201, 'message':"created"}
+    except:
+        raise HTTPException(
+            status_code=400,
+            detail="adding book was unsuccessful"
+        )
 
 
 
 
 @app.delete("/books/{book_id}")
 async def Deletebooks(book_id : int):# -> dict[str, Any]:
-    if book_id < 0 or book_id >= len(li):
+    if book_id < 0 or book_id >= len(books):
         return {"message": "Book not found"}
 
-    li.pop(book_id) 
+    books.pop(book_id) 
 
-    return {'status' : 200, 'message':"success", 'list' : li}
+    return {'status' : 200, 'message':"success"}
 
 
 @app.patch("/books/{book_id}")
 async def Updatebooks(book_id: int, book: models.BookUpdate):
-    if book_id < 0 or book_id >= len(li):
+    if book_id < 0 or book_id >= len(books):
         return {"message": "Book not found"}
 
-    old_book = li[book_id]
+    old_book = books[book_id]
 
     update_data = book.model_dump(exclude_unset=True)
 
     updated_book = old_book.model_copy(update=update_data)
 
-    li[book_id] = updated_book
+    books[book_id] = updated_book
 
     return {
         "status": 200,
