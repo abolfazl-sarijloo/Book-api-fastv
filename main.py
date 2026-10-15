@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 app = FastAPI()
 
-books = []
+books = {}
 
 @app.get("/books")
 async def root():
@@ -18,19 +18,21 @@ async def root():
 
 @app.get("/books/{book_id}")
 async def Getbook(book_id:int):
-    for book in books:
-        if book.id == book_id:
-            return {'status' : 200, 'message':"success", 'book' : book}
-
+    book = books.get(book_id)
+    if book:
+        return {'status' : 200, 'message':"success", 'book' : book}
+    
     raise HTTPException(
         status_code=404,
-        detail="Book not found"
+        detail="book not found"
     )
+
+
 
 @app.post("/books/")
 async def Addbooks(book: models.Book):
     try:
-        books.append(book)
+        books[book.id] = book
         return {'status' : 201, 'message':"created"}
     except:
         raise HTTPException(
@@ -43,19 +45,16 @@ async def Addbooks(book: models.Book):
 
 @app.delete("/books/{book_id}")
 async def Deletebooks(book_id : int):# -> dict[str, Any]:
-    if book_id < 0 or book_id >= len(books):
-        return {"message": "Book not found"}
+    try:
+        books.pop(book_id) 
 
-    books.pop(book_id) 
-
-    return {'status' : 200, 'message':"success"}
+        return {'status' : 200, 'message':"success"}
+    except:
+        return {'status' : 404, 'message':"book not found"}
 
 
 @app.patch("/books/{book_id}")
 async def Updatebooks(book_id: int, book: models.BookUpdate):
-    if book_id < 0 or book_id >= len(books):
-        return {"message": "Book not found"}
-
     old_book = books[book_id]
 
     update_data = book.model_dump(exclude_unset=True)
